@@ -23,13 +23,13 @@ A machine learning-powered credit scoring application that evaluates consumer cr
 
 ## 📊 Data Source
 
-The project uses **synthetic financial data** generated in the Jupyter notebook (`bits-project-final-year.ipynb`). This synthetic dataset simulates:
+The project uses **synthetic financial data** generated to simulate real-world credit behaviors. This synthetic dataset includes:
 
 - 5,000 customers with various financial profiles (stable, BNPL-heavy, credit card revolvers, etc.)
 - 3 years of transaction history including income, spending, BNPL usage, credit card payments, cash advances, and external support
 - Behavioral features like BNPL ratios, credit utilization, spending volatility, and liquidity stress indicators
 
-The synthetic data is inspired by the **UCI Credit Card Default Dataset** (included as `default_of_credit_card_clients.xls`), which contains real Taiwanese credit card client data from 2005. The UCI dataset was used as a reference for feature engineering and model validation, but the main training data is synthetic to avoid privacy issues and allow for controlled experimentation with BNPL behaviors.
+The synthetic data is inspired by the **UCI Credit Card Default Dataset**, which contains real Taiwanese credit card client data from 2005. The UCI dataset was used as a reference for feature engineering and model validation, but the main training data is synthetic to avoid privacy issues and allow for controlled experimentation with BNPL behaviors.
 
 ## 🧠 Model Details
 

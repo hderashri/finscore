@@ -8,7 +8,7 @@ st.set_page_config(page_title="FINSCORE Credit Scoring", layout="wide")
 # -----------------------------
 # LOAD MODEL
 # -----------------------------
-model = joblib.load("model_lgb.pkl")
+model = joblib.load("models/model_lgb.pkl")
 
 st.title("FINSCORE: BNPL-Aware Credit Scoring System")
 
