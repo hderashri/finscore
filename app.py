@@ -22,12 +22,18 @@ BNPL usage, credit utilization, cash advances, and spending patterns.
 # -----------------------------
 
 st.subheader("Enter Financial Details")
+st.write("Use the inputs below to capture income, credit usage, BNPL behavior, and your current loan position.")
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1:
 
     age = st.slider("Age",21,65,35)
+
+    employment_type = st.selectbox(
+        "Employment Type",
+        ["Salaried","Self Employed"]
+    )
 
     income = st.number_input(
         "Monthly Income (₹)",
@@ -50,16 +56,16 @@ with col1:
         value=5000
     )
 
-    bnpl_transactions = st.slider(
-        "BNPL Transactions",
-        0,20,2
-    )
-
 with col2:
 
     credit_cards = st.slider(
         "Number of Credit Cards",
         1,5,2
+    )
+
+    city_tier = st.selectbox(
+        "City Tier",
+        ["Tier 1","Tier 2","Tier 3"]
     )
 
     credit_limit_total = st.number_input(
@@ -81,6 +87,8 @@ with col2:
         0,15,0
     )
 
+with col3:
+
     external_support_total = st.number_input(
         "Money Borrowed from Family/Friends (₹)",
         min_value=0,
@@ -93,6 +101,13 @@ with col2:
         0,10,0
     )
 
+    current_active_loan = st.number_input(
+        "Current Active Loan Balance (₹)",
+        min_value=0,
+        max_value=2000000,
+        value=0
+    )
+
     min_balance = st.number_input(
         "Minimum Account Balance (₹)",
         min_value=-50000,
@@ -100,29 +115,36 @@ with col2:
         value=10000
     )
 
+    bnpl_transactions = st.slider(
+    "BNPL Transactions",
+    0,20,2
+    )
+
 # -----------------------------
 # FEATURE ENGINEERING
 # -----------------------------
 
-avg_spend = total_spend / 12
+estimated_txn_count = max(1, bnpl_transactions + credit_cash_transactions + external_support_transactions + 8)
+avg_spend = total_spend / estimated_txn_count
 spend_volatility = avg_spend * 0.8
-max_spend = total_spend * 0.25
+max_spend = max(avg_spend * 1.8, total_spend * 0.25)
 
 bnpl_usage_ratio = bnpl_total / total_spend if total_spend > 0 else 0
 
 cash_advance_ratio = credit_cash_total / total_spend if total_spend > 0 else 0
 external_support_ratio = external_support_total / income if income > 0 else 0
+loan_income_ratio = current_active_loan / income if income > 0 else 0
 
 bnpl_income_ratio = bnpl_total / income if income > 0 else 0
-credit_utilisation = total_spend / credit_limit_total if credit_limit_total > 0 else 0
+credit_utilisation = max_spend / credit_limit_total if credit_limit_total > 0 else 0
 
 # Behavior segments
-segment_cash_dependent = int(cash_advance_ratio > 0.3)
-segment_external_support = int(external_support_ratio > 0.3)
+segment_cash_dependent = int(cash_advance_ratio > 0.25)
+segment_external_support = int(external_support_ratio > 1)
 
-employment_type_self_employed = 0
-city_tier_tier2 = 0
-city_tier_tier3 = 0
+employment_type_self_employed = 1 if employment_type == "Self Employed" else 0
+city_tier_tier2 = 1 if city_tier == "Tier 2" else 0
+city_tier_tier3 = 1 if city_tier == "Tier 3" else 0
 
 # -----------------------------
 # MODEL INPUT
@@ -180,7 +202,7 @@ if st.button("Calculate FINSCORE"):
     # FINSCORE
     # -----------------------------
 
-    finscore = int(900 - prob_default * 600)
+    finscore = int(np.clip(900 - prob_default * 600, 300, 900))
 
     if finscore >= 800:
         category = "Excellent"
@@ -203,10 +225,10 @@ if st.button("Calculate FINSCORE"):
     elif segment_external_support:
         behavior = "External Borrowing"
 
-    elif bnpl_income_ratio > 0.4:
+    elif bnpl_income_ratio > 0.35:
         behavior = "BNPL Dependent"
 
-    elif credit_utilisation > 0.8:
+    elif credit_utilisation > 0.75:
         behavior = "Credit Card Revolver"
 
     elif min_balance < 0:
@@ -221,16 +243,16 @@ if st.button("Calculate FINSCORE"):
 
     reasons = []
 
-    if bnpl_income_ratio > 0.4:
+    if bnpl_income_ratio > 0.35:
         reasons.append("High BNPL dependence relative to income")
 
-    if credit_utilisation > 0.8:
+    if credit_utilisation > 0.75:
         reasons.append("High credit utilization")
 
-    if cash_advance_ratio > 0.3:
+    if cash_advance_ratio > 0.25:
         reasons.append("Frequent credit card cash withdrawals")
 
-    if external_support_ratio > 0.3:
+    if external_support_ratio > 1:
         reasons.append("Dependence on external financial support")
 
     if min_balance < 0:
@@ -256,11 +278,17 @@ if st.button("Calculate FINSCORE"):
 
     st.subheader("FINSCORE Result")
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
 
     c1.metric("FINSCORE", finscore)
     c2.metric("Risk Category", category)
     c3.metric("Default Probability", round(prob_default,3))
+    c4.metric("Current Loan Going", f"₹{int(current_active_loan):,}")
+
+    st.subheader("Loan Summary")
+    l1, l2 = st.columns(2)
+    l1.metric("Loan / Income", f"{loan_income_ratio:.2%}")
+    l2.metric("Current Loan Balance", f"₹{int(current_active_loan):,}")
 
     st.subheader("Behavior Profile")
     st.write(behavior)
