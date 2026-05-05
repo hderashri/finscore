@@ -9,7 +9,7 @@ A machine learning-powered credit scoring application that evaluates consumer cr
 - **Behavioral Credit Scoring**: Analyzes spending patterns, BNPL usage, credit utilization, and liquidity indicators
 - **Interactive Web App**: User-friendly Streamlit interface for real-time credit score calculation
 - **Comprehensive Risk Assessment**: Evaluates multiple risk factors including BNPL dependency, cash advance behavior, and external borrowing
-- **Synthetic Dataset**: Includes 5,000 synthetic customer profiles with 3 years of transaction history
+- **Synthetic Dataset**: Includes 15,000 synthetic customer profiles with 3 years of transaction history
 - **Model Interpretability**: Provides clear explanations of risk factors and behavioral insights
 - **FINSCORE Calculation**: Ranges from 300-900, similar to traditional credit scores
 
@@ -86,7 +86,10 @@ The synthetic data is inspired by the **UCI Credit Card Default Dataset**, which
    streamlit run app.py
    ```
 
-5. **Open your browser** to `http://localhost:8501`
+   **Note**: If `streamlit` command is not found even after activating the venv, use:
+   ```bash
+   python -m streamlit run app.py
+   ```
 
 ## 📖 Usage
 
@@ -140,3 +143,19 @@ Project Link: [https://github.com/hderashri/finscore](https://github.com/hderash
 ---
 
 **Note**: This is an educational project demonstrating credit scoring concepts. Not intended for actual financial decision-making.
+
+## 📈 Final Submission Updates
+
+### Changes Since Mid-Sem Submission
+- **Fixed Streamlit Execution**: Resolved command not found error by using `python -m streamlit run app.py` as an alternative to direct `streamlit run app.py` command.
+- **Verified Model Loading**: Confirmed the LightGBM model (model_lgb.pkl) loads correctly with calibrated classifiers for accurate probability predictions.
+- **App Functionality**: The web app runs successfully on `http://localhost:8501`, with all input forms, feature engineering, predictions, and explanations working as intended.
+- **Dependencies**: All packages in requirements.txt are installed and functional; Watchdog module is recommended for improved performance during development.
+- **Data Handling**: Synthetic data is generated on-the-fly in the app; no external data files are required for deployment.
+- **Deployment Readiness**: App is ready for Streamlit Cloud or Heroku deployment; consider adding environment variables for production (e.g., model path).
+
+### Known Limitations and Future Improvements
+- Model interpretability could be enhanced with SHAP/LIME explanations for feature importance.
+- Add input validation to prevent unrealistic financial inputs.
+- Implement user data persistence or export functionality for results.
+- Deploy to Streamlit Cloud for public access (update badge URL accordingly).
