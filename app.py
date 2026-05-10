@@ -138,6 +138,19 @@ loan_income_ratio = current_active_loan / income if income > 0 else 0
 bnpl_income_ratio = bnpl_total / income if income > 0 else 0
 credit_utilisation = max_spend / credit_limit_total if credit_limit_total > 0 else 0
 
+# Additional features required by model
+spend_income_ratio = total_spend / income if income > 0 else 0
+overspend_ratio = max(0, (total_spend - income) / income) if income > 0 else 0
+debt_to_income = current_active_loan / income if income > 0 else 0
+buffer_ratio = min_balance / income if income > 0 else 0
+# Fixed: use actual credit usage (spending) instead of loan balance for revolving utilisation
+revolving_utilisation = (total_spend / credit_limit_total) if credit_limit_total > 0 else 0
+payment_ratio = max(0, 1 - loan_income_ratio) if income > 0 else 0
+payment_delay = int(min_balance < 0)
+bnpl_installment_ratio = bnpl_total / income if income > 0 else 0
+credit_history_years = (age - 21) / 10  # Approximate
+hard_inquiry_count = int(credit_cards > 3)
+
 # Behavior segments
 segment_cash_dependent = int(cash_advance_ratio > 0.25)
 segment_external_support = int(external_support_ratio > 1)
@@ -182,7 +195,23 @@ input_df = pd.DataFrame([{
     "city_tier_tier3": city_tier_tier3,
 
     "segment_cash_dependent": segment_cash_dependent,
-    "segment_external_support": segment_external_support
+    "segment_external_support": segment_external_support,
+
+    # Additional features required by model
+    "current_active_loan": current_active_loan,
+    "loan_income_ratio": loan_income_ratio,
+    "spend_income_ratio": spend_income_ratio,
+    "overspend_ratio": overspend_ratio,
+    "payment_ratio": payment_ratio,
+    "payment_delay": payment_delay,
+    "bnpl_income_ratio": bnpl_income_ratio,
+    "credit_utilisation": credit_utilisation,
+    "debt_to_income": debt_to_income,
+    "buffer_ratio": buffer_ratio,
+    "revolving_utilisation": revolving_utilisation,
+    "credit_history_years": credit_history_years,
+    "hard_inquiry_count": hard_inquiry_count,
+    "bnpl_installment_ratio": bnpl_installment_ratio
 
 }])
 
@@ -196,13 +225,68 @@ if st.button("Calculate FINSCORE"):
     input_df = input_df[feature_order]
 
     prob_default = model.predict_proba(input_df)[0][1]
-    # prob_default = prob_default * 0.8
 
     # -----------------------------
-    # FINSCORE
+    # BEHAVIORAL FINSCORE CALCULATION
     # -----------------------------
-
-    finscore = int(np.clip(900 - prob_default * 600, 300, 900))
+    # More nuanced scoring that considers behavioral patterns beyond just default probability
+    
+    # Base score from probability (300-900 range)
+    base_score = 900 - (prob_default * 600)
+    
+    # Behavioral adjustments
+    behavioral_adjustment = 0
+    
+    # BNPL dependency penalty
+    if bnpl_income_ratio > 0.4:
+        behavioral_adjustment -= 50
+    elif bnpl_income_ratio > 0.25:
+        behavioral_adjustment -= 25
+    
+    # Credit utilization penalty
+    if credit_utilisation > 0.8:
+        behavioral_adjustment -= 40
+    elif credit_utilisation > 0.6:
+        behavioral_adjustment -= 20
+    
+    # Payment history bonus/penalty
+    if payment_delay == 1:
+        behavioral_adjustment -= 30
+    elif min_balance > income * 0.5:
+        behavioral_adjustment += 15  # Strong buffer
+    
+    # Overspending penalty
+    if overspend_ratio > 0.2:
+        behavioral_adjustment -= 35
+    elif overspend_ratio > 0.1:
+        behavioral_adjustment -= 15
+    
+    # Cash advance dependency penalty
+    if segment_cash_dependent == 1:
+        behavioral_adjustment -= 25
+    
+    # External borrowing penalty
+    if segment_external_support == 1:
+        behavioral_adjustment -= 20
+    
+    # Debt burden penalty
+    if loan_income_ratio > 2.0:
+        behavioral_adjustment -= 40
+    elif loan_income_ratio > 1.0:
+        behavioral_adjustment -= 20
+    
+    # Age-based stability bonus (older = more stable)
+    if age > 45:
+        behavioral_adjustment += 10
+    elif age < 28:
+        behavioral_adjustment -= 10
+    
+    # Employment stability bonus
+    if employment_type == "Salaried":
+        behavioral_adjustment += 5
+    
+    # Apply behavioral adjustments
+    finscore = int(np.clip(base_score + behavioral_adjustment, 300, 900))
 
     if finscore >= 800:
         category = "Excellent"
